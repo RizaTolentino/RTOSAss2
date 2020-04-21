@@ -160,7 +160,7 @@ void *ThreadA(void *params)
 		strline = strtok(NULL, "\n");
 		sem_post(&((sem_t)(((ThreadParams*)(params))->sem_read)));
 	}
-
+  //change
   printf("ThreadA\n");
 }
 
