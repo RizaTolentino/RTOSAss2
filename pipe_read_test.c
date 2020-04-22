@@ -79,7 +79,7 @@ char *msg = (char*)(((ThreadParams*)(param))->message);
       for (i = 0; i < 255; i++)
       {
         if(msg[i] !='\0')
-            printf ("%c\n", msg[i]);
+            printf ("%c", msg[i]);
         else {
             printf("reading pipe has completed\n");
             exit (5);}

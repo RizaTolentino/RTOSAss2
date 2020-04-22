@@ -25,7 +25,7 @@
 #include <stdbool.h>
 
 /* --- Defines --- */
-#define CONTENT_START 9
+//#define CONTENT_START 9
 #define TRUE 1
 #define FALSE 0
 /* --- Structs --- */
@@ -54,9 +54,9 @@ void *ThreadC(void *params);
 /* --- Main Code --- */
 int main(int argc, char const *argv[])
 {
-  struct timeval t1;
-  gettimeofday(&t1, NULL); // Start Timer
-  int fd[2];               //File descriptor for creating a pipe
+  //struct timeval t1;
+  //gettimeofday(&t1, NULL); // Start Timer
+  //int fd[2];               //File descriptor for creating a pipe
 
   int result;
   pthread_t tid1, tid2, tid3; //Thread ID
@@ -86,6 +86,8 @@ int main(int argc, char const *argv[])
     exit(-1);
   }
   //TODO: add your code
+  //should we add check that all threads created successfully
+  sem_post(&params.sem_write);
 
   // Wait on threads to finish
   pthread_join(tid1, NULL);
@@ -93,7 +95,7 @@ int main(int argc, char const *argv[])
   pthread_join(tid3, NULL);
   //TODO: add your code
 
-  return 0;
+  //return 0;
 }
 
 void initializeData(ThreadParams *params)
@@ -119,6 +121,8 @@ void initializeData(ThreadParams *params)
 void *ThreadA(void *params)
 {
   int success = 100;
+  //sem_t *sem_write = (sem_t*)(((ThreadParams*)(params))->sem_write);
+  //sem_t *sem_read = (sem_t*)(((ThreadParams*)(params))->sem_read);
 	//printf("Made it to runnerOne\n");
 	FILE* fp;
 	char str[256];
@@ -137,13 +141,14 @@ void *ThreadA(void *params)
     fclose(fp);
 
 	int *fd = (int*)(((ThreadParams*)(params))->pipeFile);
-	/* aquire the mutex lock */
-	
-	char *strline = strtok(str, "\n");
+	/* create local semaphores */
+	sem_t sem_write = (sem_t)(((ThreadParams*)(params))->sem_write);
+	sem_t sem_read = (sem_t)(((ThreadParams*)(params))->sem_read);
+  char *strline = strtok(str, "\n");
 	while(1)
 	{
 		// success = pthread_mutex_lock(&mutex);
-		sem_wait(&((sem_t)(((ThreadParams*)(params))->sem_write)));
+		sem_wait(&sem_write);
 		
 		if(strline == NULL)
 			exit(1);
@@ -158,7 +163,7 @@ void *ThreadA(void *params)
 		// pthread_mutex_unlock(&mutex);
 		strline = NULL;
 		strline = strtok(NULL, "\n");
-		sem_post(&((sem_t)(((ThreadParams*)(params))->sem_read)));
+		sem_post(&sem_read);
 	}
   //change
   printf("ThreadA\n");
@@ -169,10 +174,13 @@ void *ThreadB(void *params)
   printf ("In reading thread\n");
   int *pipeFile = (int*)(((ThreadParams*)(params))->pipeFile);
   char *message =  (char*)(((ThreadParams*)(params))->message);
+  sem_t sem_justify = (sem_t)(((ThreadParams*)(params))->sem_justify);
+	sem_t sem_read = (sem_t)(((ThreadParams*)(params))->sem_read);
   /*read from pipe*/
   while(1){
     //char    ch[256];
-    int     i;  
+   sem_wait(&sem_read);
+   int     i;  
     
     read (pipeFile[0],message,256);
     
@@ -183,7 +191,7 @@ void *ThreadB(void *params)
     /*store in 2D array*/
     //currently message[256] stores a line of data in a 1D array
 
-    sem_post(&((sem_t)(((ThreadParams*)(params))->sem_justify)));
+    sem_post(&sem_justify);
   }
   
   printf("ThreadB\n");
@@ -194,9 +202,12 @@ void *ThreadC(void *params)
   //TODO: add your code
   bool ContentFlag = FALSE;
   FILE * fp;
+  sem_t sem_write = (sem_t)(((ThreadParams*)(params))->sem_write);
+	sem_t sem_justify = (sem_t)(((ThreadParams*)(params))->sem_justify);
   for(;;)
+  
   {
-    sem_wait(&((sem_t)(((ThreadParams*)(params))->sem_justify)));
+    sem_wait(&sem_justify);
     char *ch = strcat((char*)(((ThreadParams*)(params))->message),"\n");
 
     if (ContentFlag = TRUE)
@@ -215,10 +226,10 @@ void *ThreadC(void *params)
     if (strcmp(ch,"end_header\n"))
       //it is now content stuff
       ContentFlag = TRUE;
-
   
     //post write sempahore
-    sem_post(&((sem_t)(((ThreadParams*)(params))->sem_write)));
+    sem_post(&sem_write);
+    //sem_post(&((sem_t)(((ThreadParams*)(params))->sem_write)));
   }
   
 
