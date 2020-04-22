@@ -22,10 +22,12 @@
 #include <sys/stat.h>
 #include <semaphore.h>
 #include <sys/time.h>
+#include <stdbool.h>
 
 /* --- Defines --- */
 #define CONTENT_START 9
-
+#define TRUE 1
+#define FALSE 0
 /* --- Structs --- */
 
 typedef struct ThreadParams
@@ -33,7 +35,6 @@ typedef struct ThreadParams
   int pipeFile[2];
   sem_t sem_read, sem_justify, sem_write;
   char message[255];
-  pthread_mutex_t lock;
 } ThreadParams;
 
 /* --- Prototypes --- */
@@ -104,16 +105,15 @@ void initializeData(ThreadParams *params)
     exit(1);
   }
   // Initialize Sempahores
-  sem_init(&(params->sem_read), 0, 1);
+  sem_init(&(params->sem_read), 0, 0);
   sem_init(&(params->sem_write), 0, 1);
-  sem_init(&(params->sem_justify), 0, 1);
+  sem_init(&(params->sem_justify), 0, 0);
 
   //Get default attributes
   //TODO: add your code
   //Initialise
   //*params->message = NULL;
 
-  return 0;
 }
 
 void *ThreadA(void *params)
@@ -168,30 +168,59 @@ void *ThreadB(void *params)
 {
   printf ("In reading thread\n");
   int *pipeFile = (int*)(((ThreadParams*)(params))->pipeFile);
-   
+  char *message =  (char*)(((ThreadParams*)(params))->message);
   /*read from pipe*/
   while(1){
-    char    ch[256];
+    //char    ch[256];
     int     i;  
     
-    read (pipeFile[0],ch,256);
+    read (pipeFile[0],message,256);
     
-    for (i = 0; i < strlen(ch); i++){
-      printf ("%c", ch[i]);}
+    for (i = 0; i < strlen(message); i++){
+      printf ("%c", message[i]);}
     printf("reading pipe has completed\n");
     
     /*store in 2D array*/
-    //currently ch[256] stores the message in the pipe in a 1D array
+    //currently message[256] stores a line of data in a 1D array
 
     sem_post(&((sem_t)(((ThreadParams*)(params))->sem_justify)));
   }
   
-  printf("ThreadB complete\n");
+  printf("ThreadB\n");
 }
 
 void *ThreadC(void *params)
 {
   //TODO: add your code
+  bool ContentFlag = FALSE;
+  FILE * fp;
+  for(;;)
+  {
+    sem_wait(&((sem_t)(((ThreadParams*)(params))->sem_justify)));
+    char *ch = strcat((char*)(((ThreadParams*)(params))->message),"\n");
+
+    if (ContentFlag = TRUE)
+    {
+      printf("%s", ch);
+      //open .txt file, append to file
+      fp = fopen("output.txt","a");
+      
+      //print to txt file
+      fprintf(fp, ch);
+      //close txt file
+      
+      fclose(fp);
+    }
+
+    if (strcmp(ch,"end_header\n"))
+      //it is now content stuff
+      ContentFlag = TRUE;
+
+  
+    //post write sempahore
+    sem_post(&((sem_t)(((ThreadParams*)(params))->sem_write)));
+  }
+  
 
   printf("ThreadC\n");
 }

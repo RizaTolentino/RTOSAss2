@@ -14,6 +14,7 @@ typedef struct ThreadParams
 {
     int fd[2];//File descriptor for creating a pipe
     buffer_item inputs[100];
+    char message[255];
 
 }ThreadParams;
 
@@ -64,20 +65,21 @@ void *reader(void *param)
 {
 printf ("In reading thread\n");
 int *fd = (int*)(((ThreadParams*)(param))->fd);
+char *msg = (char*)(((ThreadParams*)(param))->message);
    
    while(1){
-      char    ch[255];
+      //char    ch[255];
       int     result;
       int     i;  
-      result = read (fd[0],ch,80);
+      result = read (fd[0],msg,80);
     //   if (result != 1) {
     //     perror("read");
     //     // exit(4);
     //   }
       for (i = 0; i < 255; i++)
       {
-        if(ch[i] !='\0')
-            printf ("%c", ch[i]);
+        if(msg[i] !='\0')
+            printf ("%c\n", msg[i]);
         else {
             printf("reading pipe has completed\n");
             exit (5);}
