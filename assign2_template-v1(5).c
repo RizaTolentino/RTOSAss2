@@ -87,15 +87,13 @@ int main(int argc, char const *argv[])
   }
   //TODO: add your code
   //should we add check that all threads created successfully
-  sem_post(&params.sem_write);
+  //sem_post(&params.sem_write);
 
   // Wait on threads to finish
   pthread_join(tid1, NULL);
   pthread_join(tid2, NULL);
   pthread_join(tid3, NULL);
-  //TODO: add your code
 
-  //return 0;
 }
 
 void initializeData(ThreadParams *params)
@@ -106,26 +104,20 @@ void initializeData(ThreadParams *params)
     perror("pipe error");
     exit(1);
   }
-  // Initialize Sempahores
-  sem_init(&(params->sem_read), 0, 0);
-  sem_init(&(params->sem_write), 0, 1);
-  sem_init(&(params->sem_justify), 0, 0);
-
-  //Get default attributes
-  //TODO: add your code
-  //Initialise
-  //*params->message = NULL;
+  // Initialize Sempahores - now doing this in the thread
 
 }
 
 void *ThreadA(void *params)
 {
+  ThreadParams *threadA_Params = (ThreadParams*)(params);
+
+  if(!sem_init(&(threadA_Params->sem_write), 0, 1))
+    printf("Successfully initialised Sem_A\n");
   int success = 100;
-  //sem_t *sem_write = (sem_t*)(((ThreadParams*)(params))->sem_write);
-  //sem_t *sem_read = (sem_t*)(((ThreadParams*)(params))->sem_read);
-	//printf("Made it to runnerOne\n");
+
 	FILE* fp;
-	char str[256];
+	char str[512];
 	fp = fopen("data.txt", "r");
 
     if (fp == NULL)
@@ -136,34 +128,30 @@ void *ThreadA(void *params)
 
     //put text file into string
     fread(str, sizeof(str)+1, 1,fp);
-        //printf("This is string: %s", str);
+        printf("This is string: %s", str);
         
     fclose(fp);
 
-	int *fd = (int*)(((ThreadParams*)(params))->pipeFile);
-	/* create local semaphores */
-	sem_t sem_write = (sem_t)(((ThreadParams*)(params))->sem_write);
-	sem_t sem_read = (sem_t)(((ThreadParams*)(params))->sem_read);
+
   char *strline = strtok(str, "\n");
 	while(1)
 	{
-		// success = pthread_mutex_lock(&mutex);
-		sem_wait(&sem_write);
+
+		sem_wait(&(threadA_Params->sem_write));
 		
 		if(strline == NULL)
 			exit(1);
       
 		printf("thread one: write to pipe\n");
-		printf("writing: %s \n\n", strline);
+		printf("writing: %s \n", strline);
 
-		write(fd[1], strline, 80);
-		// printf("success for lock is: %d\n", success);
-		
-		/* release the mutex lock */
-		// pthread_mutex_unlock(&mutex);
+		write(threadA_Params->pipeFile[1], strline, 80);
+
 		strline = NULL;
 		strline = strtok(NULL, "\n");
-		sem_post(&sem_read);
+
+    printf("Post read semaphore\n\n");
+		sem_post(&(threadA_Params->sem_read));
 	}
   //change
   printf("ThreadA\n");
@@ -171,27 +159,27 @@ void *ThreadA(void *params)
 
 void *ThreadB(void *params)
 {
-  printf ("In reading thread\n");
-  int *pipeFile = (int*)(((ThreadParams*)(params))->pipeFile);
-  char *message =  (char*)(((ThreadParams*)(params))->message);
-  sem_t sem_justify = (sem_t)(((ThreadParams*)(params))->sem_justify);
-	sem_t sem_read = (sem_t)(((ThreadParams*)(params))->sem_read);
+  ThreadParams *threadB_Params = (ThreadParams*)(params);
+
+  if(!sem_init(&(threadB_Params->sem_read), 0, 0))
+    printf("Successfully initialised Sem_B\n");
   /*read from pipe*/
   while(1){
-    //char    ch[256];
-   sem_wait(&sem_read);
+    
    int     i;  
+   sem_wait(&(threadB_Params->sem_read));
+    printf ("In reading thread\n");
+    read (threadB_Params->pipeFile[0],threadB_Params->message,256);
     
-    read (pipeFile[0],message,256);
-    
-    for (i = 0; i < strlen(message); i++){
-      printf ("%c", message[i]);}
-    printf("reading pipe has completed\n");
-    
-    /*store in 2D array*/
-    //currently message[256] stores a line of data in a 1D array
+    printf("read from pipe: ");
+    for (i = 0; i < strlen(threadB_Params->message); i++){
+      printf ("%c", threadB_Params->message[i]);}
 
-    sem_post(&sem_justify);
+    printf("\nreading pipe has completed\n");
+    
+    //currently message[256] stores a line of data in a 1D array
+    printf("posting Thread C semaphore\n\n");
+    sem_post(&(threadB_Params->sem_justify));
   }
   
   printf("ThreadB\n");
@@ -199,37 +187,44 @@ void *ThreadB(void *params)
 
 void *ThreadC(void *params)
 {
+  ThreadParams *threadC_Params = (ThreadParams*)(params);
   //TODO: add your code
   bool ContentFlag = FALSE;
   FILE * fp;
-  sem_t sem_write = (sem_t)(((ThreadParams*)(params))->sem_write);
-	sem_t sem_justify = (sem_t)(((ThreadParams*)(params))->sem_justify);
-  for(;;)
-  
-  {
-    sem_wait(&sem_justify);
-    char *ch = strcat((char*)(((ThreadParams*)(params))->message),"\n");
 
-    if (ContentFlag = TRUE)
+  if(!sem_init(&(threadC_Params->sem_justify), 0, 0))
+    printf("Successfully initialised Sem_C\n");
+  while(1)
+  {
+    sem_wait(&(threadC_Params->sem_justify));
+    printf("in Thread C\n");
+    if (threadC_Params->message == NULL)
+      exit(5);
+    char *ch = strcat((threadC_Params->message),"\n");
+
+    if (ContentFlag == TRUE)
     {
       printf("%s", ch);
       //open .txt file, append to file
       fp = fopen("output.txt","a");
-      
       //print to txt file
-      fprintf(fp, ch);
+      fprintf(fp, "%s", ch);
       //close txt file
-      
       fclose(fp);
     }
 
-    if (strcmp(ch,"end_header\n"))
+    //Check if we are in the content region
+    if (!strcmp(ch,"end_header\n"))
+    {
+      printf("found end of header\n");
       //it is now content stuff
       ContentFlag = TRUE;
-  
+    }
+      
     //post write sempahore
-    sem_post(&sem_write);
-    //sem_post(&((sem_t)(((ThreadParams*)(params))->sem_write)));
+    printf("Post Write Semaphore\n\n");
+    sem_post(&(threadC_Params->sem_write));
+    
   }
   
 
