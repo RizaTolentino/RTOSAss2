@@ -85,6 +85,8 @@ int main(int argc, char const *argv[])
     perror("Error creating threads: ");
     exit(-1);
   }
+  
+  printf("Output file created, end program\n");
 
   // Wait on threads to finish
   pthread_join(tid1, NULL);
@@ -111,17 +113,17 @@ void *ThreadA(void *params)
   //Declare local variables
   ThreadParams *threadA_Params = (ThreadParams*)(params); //Pointer to thread struct
 	FILE* fp;                                               //File pointer to txt file to be read
-	char strline[MAX_STR_LENGTH];                                      //String to store text from file
+	char strline[255];                                      //String to store text from file
 
   //Initialise semaphore
-  if(!sem_init(&(threadA_Params->sem_write), 0, 1))
-    printf("Successfully initialised Sem_A\n");
-  else
-  {
-    //If semaphore is not initalised correctly, exit program
-    perror("Semaphore not initialised correctly:");
-    exit(1);
-  }
+  // if(!sem_init(&(threadA_Params->sem_write), 0, 1))
+  //   printf("Successfully initialised Sem_A\n");
+  // else
+  // {
+  //   //If semaphore is not initalised correctly, exit program
+  //   perror("Semaphore not initialised correctly:");
+  //   exit(1);
+  // }
 
   //Open data text file
 	fp = fopen("data.txt", "r");
@@ -136,7 +138,7 @@ void *ThreadA(void *params)
 	while(1)
 	{
     //The thread must wait for sempahore to be posted
-		sem_wait(&(threadA_Params->sem_write));
+		// sem_wait(&(threadA_Params->sem_write));
 		
     //Detects end-of-file and closes the file
     
@@ -169,7 +171,7 @@ void *ThreadA(void *params)
 
     printf("Post read semaphore\n\n");
     //unlock read semaphore - signal Thread B
-		sem_post(&(threadA_Params->sem_read));
+		// sem_post(&(threadA_Params->sem_read));
 	}
 
   printf("ThreadA\n");
@@ -181,20 +183,20 @@ void *ThreadB(void *params)
   ThreadParams *threadB_Params = (ThreadParams*)(params);
 
   //Initialise Semaphore
-  if(!sem_init(&(threadB_Params->sem_read), 0, 0))
-    printf("Successfully initialised Sem_B\n");
-  else
-  {
-    //If semaphore is not initialised correctly, exit program
-    perror("Semaphore not initialised correctly\n");
-    exit(1);
-  }
+  // if(!sem_init(&(threadB_Params->sem_read), 0, 0))
+  //   printf("Successfully initialised Sem_B\n");
+  // else
+  // {
+  //   //If semaphore is not initialised correctly, exit program
+  //   perror("Semaphore not initialised correctly\n");
+  //   exit(1);
+  // }
 
   //Read from pipe
   while(1)
   { 
     int i;  
-    sem_wait (&(threadB_Params->sem_read));
+    // sem_wait (&(threadB_Params->sem_read));
     printf ("In reading thread\n");
     
     //If reading from pipe is unsuccessful, exit program
@@ -215,7 +217,7 @@ void *ThreadB(void *params)
     printf("posting Thread C semaphore\n\n");
 
     //unlock justify semaphore - signal Thread C
-    sem_post(&(threadB_Params->sem_justify));
+    // sem_post(&(threadB_Params->sem_justify));
   }
   
   printf("ThreadB\n");
@@ -228,14 +230,14 @@ void *ThreadC(void *params)
   bool ContentFlag = FALSE;
   FILE * fp;
   //Initialise semaphore
-  if(!sem_init(&(threadC_Params->sem_justify), 0, 0))
-    printf("Successfully initialised Sem_C\n");
-  else
-  {
-    //If semaphore is not initialised correctly, exit program
-    perror("Semaphore not initialised correctly\n");
-    exit(1);
-  }
+  // if(!sem_init(&(threadC_Params->sem_justify), 0, 0))
+  //   printf("Successfully initialised Sem_C\n");
+  // else
+  // {
+  //   //If semaphore is not initialised correctly, exit program
+  //   perror("Semaphore not initialised correctly\n");
+  //   exit(1);
+  // }
 
   //Delete existing output file
   remove("output.txt");
@@ -243,7 +245,7 @@ void *ThreadC(void *params)
   //Print content text to output file
   while(1)
   {
-    sem_wait(&(threadC_Params->sem_justify));
+    // sem_wait(&(threadC_Params->sem_justify));
     printf("in Thread C\n");
     //Check if message array is empty
     if (threadC_Params->message == NULL)
@@ -277,7 +279,7 @@ void *ThreadC(void *params)
       
     //post write sempahore
     printf("Post Write Semaphore\n\n");
-    sem_post(&(threadC_Params->sem_write));
+    // sem_post(&(threadC_Params->sem_write));
     
   }
   
