@@ -79,14 +79,14 @@ int main(int argc, char const *argv[])
     perror("Error creating threads: ");
     exit(-1);
   }
-  if (pthread_create(&tid3, &attr, ThreadC, (void *)(&params)) != 0)
+
+    if (pthread_create(&tid3, &attr, ThreadC, (void *)(&params)) != 0)
   {
     //If unsuccessful, exit
     perror("Error creating threads: ");
     exit(-1);
   }
-  
-  printf("Output file created, end program\n");
+
 
   // Wait on threads to finish
   pthread_join(tid1, NULL);
