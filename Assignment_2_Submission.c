@@ -110,15 +110,13 @@ int main(int argc, char const *argv[])
   pthread_join(tid1, NULL);
   pthread_join(tid2, NULL);
   pthread_join(tid3, NULL);
-
 }
 
 void welcomeMessage(void)
 {
-  // Print message to mains identifying purpose of program - in red bold text 
+  // Print message to mains identifying purpose of program - in red bold text
   printf("This program can be used to read data from a text file which you input and write the contents of that file into an output file which you specify.\n");
   printf("\033[1;31mNote:\033[0m If you select an output file that already exists in your directory it will be deleted.\n\n");
-
 }
 
 void fileSelection(ThreadParams *params)
@@ -128,7 +126,7 @@ void fileSelection(ThreadParams *params)
   printf("\033[1;31mIf you would like to run default setup reading from \"data.txt\" and writing to \"output.txt\", enter 'Y', otherwise, enter any key\033[0m \n\n");
   result = scanf("%s", buffer);
 
-  if (!strcmp(buffer, "Y") || !strcmp(buffer, "y") )
+  if (!strcmp(buffer, "Y") || !strcmp(buffer, "y"))
   {
     printf("\n");
     strcpy(params->inputFilename, "data.txt");
@@ -137,11 +135,11 @@ void fileSelection(ThreadParams *params)
   else
   {
     printf("Enter the input file name, i.e. \"data.txt\", do not include quote marks:\n");
-    result = scanf("%s",params->inputFilename);
+    result = scanf("%s", params->inputFilename);
     printf("\nEnter output file name, i.e. \"output.txt\", do not include quote marks:\n");
-    result = scanf("%s",params->outputFilename);
+    result = scanf("%s", params->outputFilename);
   }
-  printf("Reading from: %s\n",params->inputFilename);
+  printf("Reading from: %s\n", params->inputFilename);
   printf("Writing to: %s\n\n", params->outputFilename);
 }
 
@@ -156,7 +154,7 @@ void initializeData(ThreadParams *params)
   }
 
   // Initialise C_to_A semaphore
-  if(sem_init(&(params->sem_C_to_A), 0, 1))
+  if (sem_init(&(params->sem_C_to_A), 0, 1))
   {
     // If semaphore is not initalised correctly, exit program
     perror("Semaphore Sem_C_to_A not initialised correctly:");
@@ -164,7 +162,7 @@ void initializeData(ThreadParams *params)
   }
 
   // Initialise A_to_B semaphore
-  if(sem_init(&(params->sem_A_to_B), 0, 0))
+  if (sem_init(&(params->sem_A_to_B), 0, 0))
   {
     // If semaphore is not initialised correctly, exit program
     perror("Sem_A_to_B not initialised correctly\n");
@@ -172,24 +170,23 @@ void initializeData(ThreadParams *params)
   }
 
   // Initialise semaphore
-  if(sem_init(&(params->sem_B_to_C), 0, 0))
+  if (sem_init(&(params->sem_B_to_C), 0, 0))
   {
     // If semaphore is not initialised correctly, exit program
     perror("Sem_B_to_C not initialised correctly\n");
     exit(1);
   }
-
 }
 
 void *ThreadA(void *params)
 {
   // Declare local variables
-  ThreadParams *threadA_Params = (ThreadParams*)(params); // Pointer to thread struct
-	FILE* fp;                                               // File pointer to txt file to be read
-	char strline[MAX_STR_LENGTH];                           // String to store text from file
+  ThreadParams *threadA_Params = (ThreadParams *)(params); // Pointer to thread struct
+  FILE *fp;                                                // File pointer to txt file to be read
+  char strline[MAX_STR_LENGTH];                            // String to store text from file
 
   // Open data text file
-	fp = fopen(threadA_Params->inputFilename, "r");
+  fp = fopen(threadA_Params->inputFilename, "r");
 
   // If file is not opened correctly, exit porgram
   if (fp == NULL)
@@ -198,11 +195,11 @@ void *ThreadA(void *params)
     exit(1);
   }
 
-	while(1)
-	{
+  while (1)
+  {
     // The thread must wait for sempahore to be posted
-		sem_wait(&(threadA_Params->sem_C_to_A));
-		
+    sem_wait(&(threadA_Params->sem_C_to_A));
+
     // Get one line from the input stream
     if (fgets(strline, MAX_STR_LENGTH, fp) == NULL)
     {
@@ -222,68 +219,68 @@ void *ThreadA(void *params)
       }
     }
     //Check is line of data has a newline character in it
-    if(strstr(strline,"\n") == NULL)
+    if (strstr(strline, "\n") == NULL)
       //if not append a newline character
       strcat(strline, "\n");
-      
-		printf("\033[1;34mIn Thread A:\033[0m writing: %s", strline);
-    
+
+    printf("\033[1;34mIn Thread A:\033[0m writing: %s", strline);
+
     //if write is unsuccessful, exit program
-		if (write(threadA_Params->pipeFile[1], strline, MAX_STR_LENGTH) < 0)
+    if (write(threadA_Params->pipeFile[1], strline, MAX_STR_LENGTH) < 0)
     {
       perror("Error writing to pipe\n");
       exit(1);
     }
 
     //unlock read semaphore - signal Thread B
-		sem_post(&(threadA_Params->sem_A_to_B));
-	}
-
+    sem_post(&(threadA_Params->sem_A_to_B));
+  }
 }
 
 void *ThreadB(void *params)
 {
   //Declare local variables
-  ThreadParams *threadB_Params = (ThreadParams*)(params);
+  ThreadParams *threadB_Params = (ThreadParams *)(params);
 
   //Read from pipe
-  while(1)
-  { 
-    int i; // counter for for loop 
+  while (1)
+  {
+    int i; // counter for for loop
 
     // The thread must wait for sempahore to be posted
-    sem_wait (&(threadB_Params->sem_A_to_B));
+    sem_wait(&(threadB_Params->sem_A_to_B));
 
     //If reading from pipe is unsuccessful, exit program
-    if (read (threadB_Params->pipeFile[0],threadB_Params->message, MAX_STR_LENGTH) < 0)
+    if (read(threadB_Params->pipeFile[0], threadB_Params->message, MAX_STR_LENGTH) < 0)
     {
-      perror ("Error reading from pipe");
-      exit (1);
+      perror("Error reading from pipe");
+      exit(1);
     }
-    
+
     printf("\033[1;34mIn Thread B:\033[0m read from pipe & put into array: ");
 
     //Store each character from pipe into message array
-    for (i = 0; i < strlen(threadB_Params->message); i++){
-      printf ("%c", threadB_Params->message[i]);}
+    for (i = 0; i < strlen(threadB_Params->message); i++)
+    {
+      printf("%c", threadB_Params->message[i]);
+    }
 
     //unlock justify semaphore - signal Thread C
     sem_post(&(threadB_Params->sem_B_to_C));
   }
-
 }
 
 void *ThreadC(void *params)
 {
   //Declare local variables
-  ThreadParams *threadC_Params = (ThreadParams*)(params);
+  ThreadParams *threadC_Params = (ThreadParams *)(params);
   bool ContentFlag = FALSE;
-  FILE * fp;
+  FILE *fp;
 
   //Delete existing output file
   remove(threadC_Params->outputFilename);
 
-  while(1)
+  while (1)
   {
     // The thread must wait for sempahore to be posted
     sem_wait(&(threadC_Params->sem_B_to_C));
@@ -311,18 +308,16 @@ void *ThreadC(void *params)
     }
     else
       printf("\033[1;34mIn Thread C:\033[0m not content, not written to file\n\n");
-    
+
     //Check if we are in the content region
-    if (!strcmp(ch,"end_header\n"))
+    if (!strcmp(ch, "end_header\n"))
     {
       printf("FOUND END OF HEADER\n\n");
       //it is now content stuff
       ContentFlag = TRUE;
     }
-      
+
     //post write sempahore
     sem_post(&(threadC_Params->sem_C_to_A));
-    
   }
-
 }
