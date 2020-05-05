@@ -9,7 +9,7 @@
 
 /*
   To compile Assignment_2_Submission ensure that gcc is installed and run the following command:
-  gcc prog_1.c -o prog_1 -lpthread -lrt
+  gcc Assignment_2_Submission.c -o Assignment_2_Submission.o -lpthread -lrt -O2
 
 */
 #include <pthread.h>
@@ -29,12 +29,12 @@
 #define FALSE 0
 #define MAX_STR_LENGTH 255
 #define NB_PIPES 2
-#define INPUT_FILE "data.txt"
-#define OUTPUT_FILE "output.txt"
 
 /* --- Structs --- */
 typedef struct ThreadParams
 {
+  char inputFilename[MAX_STR_LENGTH];       //name of file to read
+  char outputFilename[MAX_STR_LENGTH];      //name of file to write
   int pipeFile[NB_PIPES];                   //pipes for the threads to communicate
   sem_t sem_A_to_B, sem_B_to_C, sem_C_to_A; //semaphore to protect sections
   char message[MAX_STR_LENGTH];             //Store message for IPC
@@ -44,6 +44,11 @@ typedef struct ThreadParams
 
 /* Prints welcome message to user */
 void welcomeMessage(void);
+
+/*Brief: Allows user to select input and output filenames 
+  Paramaters: pointer params of type ThreadParam (a struct with multiple variables) 
+  Returns: void */
+void fileSelection(ThreadParams *params);
 
 /*Brief: Initializes data and utilities used in thread params
   Paramaters: pointer params of type ThreadParam (a struct with multiple variables) 
@@ -75,6 +80,7 @@ int main(int argc, char const *argv[])
 
   // Initialization
   welcomeMessage();
+  fileSelection(&params);
   initializeData(&params);
   pthread_attr_init(&attr);
 
@@ -110,15 +116,31 @@ int main(int argc, char const *argv[])
 void welcomeMessage(void)
 {
   // Print message to mains identifying purpose of program - in red bold text 
-  printf("This program can be used to read data from a text file 'data.txt' and write contents into an output file 'output.txt'.\n");
-  printf("\033[1;31mNote:\033[0m If you have an output.txt file existing in your directory it will be deleted.\n\n");
-  
-  //Ask for Enter input to continue the program
-  printf("Press Enter if you would like to continue, otherwise, press Ctrl+C\n");
-  while(getchar() != '\n');
+  printf("This program can be used to read data from a text file which you input and write the contents of that file into an output file which you specify.\n");
+  printf("\033[1;31mNote:\033[0m If you select an output file that already exists in your directory it will be deleted.\n\n");
 
-  //Enter has been pressed
-  printf("Your file will now be read.\n\n");
+}
+
+void fileSelection(ThreadParams *params)
+{
+  int result;
+  char buffer[MAX_STR_LENGTH];
+  printf("\033[1;31mIf you would like to run default setup reading from \"data.txt\" and writing to \"output.txt\", enter 'Y', otherwise, enter any key\033[0m \n\n");
+  result = scanf("%s", buffer);
+
+  if (!strcmp(buffer, "Y") || !strcmp(buffer, "y") )
+  {
+    strcpy(params->inputFilename, "data.txt");
+    strcpy(params->outputFilename, "output.txt");
+  }
+  else
+  {
+    printf("Enter the input file name, i.e. \"data.txt\", do not include quote marks:\n");
+    result = scanf("%s",params->inputFilename);
+    printf("\nEnter output file name, i.e. \"output.txt\", do not include quote marks:\n");
+    result = scanf("%s",params->outputFilename);
+  }
+
 }
 
 void initializeData(ThreadParams *params)
@@ -165,7 +187,7 @@ void *ThreadA(void *params)
 	char strline[MAX_STR_LENGTH];                           // String to store text from file
 
   // Open data text file
-	fp = fopen(INPUT_FILE, "r");
+	fp = fopen(threadA_Params->inputFilename, "r");
 
   // If file is not opened correctly, exit porgram
   if (fp == NULL)
@@ -233,7 +255,7 @@ void *ThreadB(void *params)
       exit (1);
     }
     
-    printf("In thread B: read from pipe & put into array: ");
+    printf("In Thread B: read from pipe & put into array: ");
 
     //Store each character from pipe into message array
     for (i = 0; i < strlen(threadB_Params->message); i++){
@@ -253,7 +275,7 @@ void *ThreadC(void *params)
   FILE * fp;
 
   //Delete existing output file
-  remove(OUTPUT_FILE);
+  remove(threadC_Params->outputFilename);
 
   while(1)
   {
@@ -274,7 +296,7 @@ void *ThreadC(void *params)
     if (ContentFlag == TRUE)
     {
       //open .txt file, append to file
-      fp = fopen(OUTPUT_FILE,"a");
+      fp = fopen(threadC_Params->outputFilename, "a");
       //print to txt file
       fprintf(fp, "%s", ch);
       printf("In Thread C: written message to file\n\n");

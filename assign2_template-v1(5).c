@@ -269,7 +269,7 @@ void *ThreadC(void *params)
     //Check if we are in the content region
     if (!strcmp(ch,"end_header\n"))
     {
-      printf("found end of header\n");
+      printf("found end of header, printing to file\n");
       //it is now content stuff
       ContentFlag = TRUE;
     }
