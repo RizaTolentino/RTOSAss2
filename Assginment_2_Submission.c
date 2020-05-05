@@ -130,6 +130,7 @@ void fileSelection(ThreadParams *params)
 
   if (!strcmp(buffer, "Y") || !strcmp(buffer, "y") )
   {
+    printf("\n");
     strcpy(params->inputFilename, "data.txt");
     strcpy(params->outputFilename, "output.txt");
   }
@@ -140,7 +141,8 @@ void fileSelection(ThreadParams *params)
     printf("\nEnter output file name, i.e. \"output.txt\", do not include quote marks:\n");
     result = scanf("%s",params->outputFilename);
   }
-
+  printf("Reading from: %s\n",params->inputFilename);
+  printf("Writing to: %s\n", params->outputFilename);
 }
 
 void initializeData(ThreadParams *params)
@@ -219,8 +221,12 @@ void *ThreadA(void *params)
         exit(1);
       }
     }
-
-		printf("In Thread A: writing: %s", strline);
+    //Check is line of data has a newline character in it
+    if(strstr(strline,"\n") == NULL)
+      //if not append a newline character
+      strcat(strline, "\n");
+      
+		printf("\033[1;34mIn Thread A:\033[0m writing: %s", strline);
     
     //if write is unsuccessful, exit program
 		if (write(threadA_Params->pipeFile[1], strline, MAX_STR_LENGTH) < 0)
@@ -255,7 +261,7 @@ void *ThreadB(void *params)
       exit (1);
     }
     
-    printf("In Thread B: read from pipe & put into array: ");
+    printf("\033[1;34mIn Thread B:\033[0m read from pipe & put into array: ");
 
     //Store each character from pipe into message array
     for (i = 0; i < strlen(threadB_Params->message); i++){
@@ -299,12 +305,12 @@ void *ThreadC(void *params)
       fp = fopen(threadC_Params->outputFilename, "a");
       //print to txt file
       fprintf(fp, "%s", ch);
-      printf("In Thread C: written message to file\n\n");
+      printf("\033[1;34mIn Thread C:\033[0m written message to file\n\n");
       //close txt file
       fclose(fp);
     }
     else
-      printf("In Thread C: not content, not written to file\n\n");
+      printf("\033[1;34mIn Thread C:\033[0m not content, not written to file\n\n");
     
     //Check if we are in the content region
     if (!strcmp(ch,"end_header\n"))
