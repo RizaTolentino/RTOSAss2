@@ -142,7 +142,7 @@ void fileSelection(ThreadParams *params)
     result = scanf("%s",params->outputFilename);
   }
   printf("Reading from: %s\n",params->inputFilename);
-  printf("Writing to: %s\n", params->outputFilename);
+  printf("Writing to: %s\n\n", params->outputFilename);
 }
 
 void initializeData(ThreadParams *params)
